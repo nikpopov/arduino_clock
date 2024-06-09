@@ -1,34 +1,31 @@
 // Real Time Clock project
 
-/* Use Arduino NANO as microcontroller
+/* Use Arduino UNO as microcontroller
 Use DS1302 RTC module
 All data display on LCD 16x2 (with I2C interface)
 
 Pin Connections
-* ARDUINO NANO |   DS1302  |  LCD I2C 16x2
+* ARDUINO UNO  |   DS1302  |  LCD I2C 16x2
 *--------------|-----------|-----------------
-*   +5V        |    VIN    |     VIN
+*   +5V        |           |     VIN
 *    D4        |    SCL    |
 *    D5        |    DAT    |
 *    D6        |    RST    |
 *    GND       |    GND    |     GND
-*   +3.3V      |           |
+*   +3.3V      |    VIN    |
 *    A5        |           |     SCL
 *    A4        |           |     SDA
 */
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <DS1302.h>
+#include <iarduino_RTC.h>
 
 // Initialize the LCD with the I2C address 0x27 (common for 16x2 LCDs)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Initialize the DS1302
-const int CE_PIN = 6;
-const int IO_PIN = 5;
-const int SCLK_PIN = 4;
-DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
+// Initialize the iarduino_RTC with DS1302
+iarduino_RTC rtc(RTC_DS1302);
 
 // Buttons
 const int setButton = 7;
@@ -42,9 +39,8 @@ int settingField = 0;
 
 void setup() {
   // Initialize LCD
-  lcd.begin(20, 4);           // Initialize the LCD
-  lcd.setBacklight(HIGH);      // Turn on backlight
-  lcd.setCursor(0, 0);
+  lcd.init();
+  // lcd.backlight();
   
   // Initialize buttons
   pinMode(setButton, INPUT);
@@ -52,8 +48,10 @@ void setup() {
   pinMode(downButton, INPUT);
   
   // Start RTC
-  rtc.halt(false);
-  rtc.writeProtect(false);
+  rtc.begin();
+  
+  // Read initial time
+  rtc.gettime();
 }
 
 void loop() {
@@ -61,13 +59,19 @@ void loop() {
     delay(200);  // Debounce delay
     if (!settingMode) {
       settingMode = true;
-      rtc.getDateTime(year, month, day, hour, minute, second);
+      rtc.gettime();
+      year = rtc.year;
+      month = rtc.month;
+      day = rtc.day;
+      hour = rtc.Hours;
+      minute = rtc.minutes;
+      second = rtc.seconds;
       settingField = 0;
     } else {
       settingField++;
       if (settingField > 5) {
         settingMode = false;
-        rtc.setDateTime(year, month, day, hour, minute, second);
+        rtc.settime(year, month, day, hour, minute, second);
       }
     }
   }
@@ -126,25 +130,25 @@ void displaySettingMode() {
 }
 
 void displayTime() {
-  DateTime now = rtc.getDateTime();
+  rtc.gettime();
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(now.year);
+  lcd.print(rtc.year);
   lcd.print("/");
-  if (now.month < 10) lcd.print("0");
-  lcd.print(now.month);
+  if (rtc.month < 10) lcd.print("0");
+  lcd.print(rtc.month);
   lcd.print("/");
-  if (now.day < 10) lcd.print("0");
-  lcd.print(now.day);
+  if (rtc.day < 10) lcd.print("0");
+  lcd.print(rtc.day);
 
   lcd.setCursor(0, 1);
-  if (now.hour < 10) lcd.print("0");
-  lcd.print(now.hour);
+  if (rtc.hours < 10) lcd.print("0");
+  lcd.print(rtc.hours);
   lcd.print(":");
-  if (now.minute < 10) lcd.print("0");
-  lcd.print(now.minute);
+  if (rtc.minutes < 10) lcd.print("0");
+  lcd.print(rtc.minutes);
   lcd.print(":");
-  if (now.second < 10) lcd.print("0");
-  lcd.print(now.second);
+  if (rtc.seconds < 10) lcd.print("0");
+  lcd.print(rtc.seconds);
 }
